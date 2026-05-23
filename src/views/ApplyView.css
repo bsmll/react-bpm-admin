@@ -1,0 +1,12 @@
+.apply-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* 让分割线更美观一点 */
+.ant-divider-horizontal.ant-divider-with-text-left {
+  margin-top: 12px;
+  margin-bottom: 24px;
+  color: #1677ff;
+  font-weight: 600;
+}

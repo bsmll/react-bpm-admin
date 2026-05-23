@@ -1,0 +1,68 @@
+.dashboard-container {
+  padding: 0; /* 外部 MainLayout 已经有 margin 了 */
+}
+
+.funnel-chart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.funnel-item {
+  background: #1890ff;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-width: 150px;
+  transition: all 0.3s;
+}
+
+.funnel-item:hover {
+  transform: scale(1.02);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.process-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.process-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.process-label {
+  width: 120px;
+  text-align: right;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.process-bar {
+  flex: 1;
+  height: 20px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.process-bar-fill {
+  height: 100%;
+  background: #1890ff;
+  transition: width 0.3s;
+}
+
+.process-value {
+  width: 40px;
+  text-align: right;
+  font-weight: bold;
+}

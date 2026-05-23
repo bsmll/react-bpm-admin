@@ -1,0 +1,26 @@
+/* src/index.css */
+
+:root {
+  /* 定义默认变量 */
+  --background-color: #f0f2f5;
+  --text-primary: rgba(0, 0, 0, 0.88);
+}
+
+body {
+  margin: 0;
+  /* 💡 关键：背景色随变量变化 */
+  background-color: var(--background-color);
+  color: var(--text-primary);
+  transition:
+    background-color 0.3s,
+    color 0.3s; /* 切换时有个丝滑的过渡动画 */
+}
+
+/* 如果你在 MainLayout 里的 Header 设了背景，也请改成变量 */
+.ant-layout-header {
+  background-color: var(--component-background) !important;
+}
+
+.ant-layout-sider {
+  background-color: var(--sider-background) !important;
+}

@@ -1,0 +1,55 @@
+.designer-page-container {
+  /* 减去顶部导航栏和外层 margin 的高度 */
+  height: calc(100vh - 110px);
+  padding: 24px;
+}
+
+.process-list-item {
+  cursor: pointer;
+  padding: 12px 16px !important;
+  transition: all 0.3s;
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+
+.process-list-item:hover {
+  background: #f5f5f5;
+}
+
+.process-list-item.active {
+  background: #e6f7ff;
+  border-right: 3px solid #1677ff;
+}
+
+.process-list-item .ant-list-item-meta-title {
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.process-list-item.active {
+  background-color: #e6f7ff;
+  border-color: #91d5ff !important;
+}
+.process-list-item:hover {
+  background-color: #fafafa;
+}
+
+.process-list-item {
+  position: relative;
+  transition: all 0.2s;
+}
+
+/* 默认隐藏删除按钮，鼠标悬停时才显示，这样界面更整洁 */
+.list-item-actions {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.process-list-item:hover .list-item-actions {
+  opacity: 1;
+}
+
+/* 确保删除按钮点击时不会触发外层的点击 */
+.list-item-actions .ant-btn:hover {
+  background-color: #fff1f0;
+}
