@@ -59,6 +59,7 @@ export interface ProcessHistory {
   type: string;
   timestamp: Date;
   operator: string | null;
+  operatorName: string | null;
   comment: string | null;
 }
 

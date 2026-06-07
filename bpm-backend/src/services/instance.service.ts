@@ -1,10 +1,9 @@
-import prisma from '../config/database.config';
-import { ProcessInstance, PaginationParams, PaginationResult } from '../types';
-import * as processService from './process.service';
-import * as taskService from './task.service';
+import prisma from "../config/database.config";
+import { ProcessInstance, PaginationParams, PaginationResult } from "../types";
+import * as processService from "./process.service";
 
 export const getInstances = async (
-  params: PaginationParams & { definitionId?: string }
+  params: PaginationParams & { definitionId?: string },
 ): Promise<PaginationResult<ProcessInstance>> => {
   const { page = 1, pageSize = 10, status, definitionId } = params;
   const skip = (page - 1) * pageSize;
@@ -22,7 +21,7 @@ export const getInstances = async (
       where,
       skip,
       take: pageSize,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         definition: true,
       },
@@ -39,17 +38,17 @@ export const startInstance = async (
     businessKey?: string;
     variables?: any;
   },
-  startedBy: string
+  startedBy: string,
 ): Promise<ProcessInstance> => {
   const { definitionId, businessKey, variables } = data;
 
   const definition = await processService.getDefinitionById(definitionId);
   if (!definition) {
-    throw new Error('流程定义不存在');
+    throw new Error("流程定义不存在");
   }
 
-  if (definition.status !== 'published') {
-    throw new Error('流程定义未发布');
+  if (definition.status !== "published") {
+    throw new Error("流程定义未发布");
   }
 
   const instance = await prisma.processInstance.create({
@@ -57,7 +56,7 @@ export const startInstance = async (
       definitionId,
       definitionVersion: definition.version,
       businessKey,
-      status: 'running',
+      status: "running",
       variables: variables ? JSON.stringify(variables) : null,
       currentNodeIds: JSON.stringify([]),
       startedBy,
@@ -70,23 +69,50 @@ export const startInstance = async (
 };
 
 export const getInstance = async (
-  id: string
+  id: string,
 ): Promise<ProcessInstance & { history: any[] }> => {
   const instance = await prisma.processInstance.findUnique({
     where: { id },
     include: {
       definition: true,
       histories: {
-        orderBy: { timestamp: 'asc' },
+        orderBy: { timestamp: "asc" },
       },
     },
   });
 
   if (!instance) {
-    throw new Error('流程实例不存在');
+    throw new Error("流程实例不存在");
   }
 
-  return instance as any;
+  //收集需要映射的id  进行批量查询，而不是单个查询。
+  const idsToLookUp = new Set<string>();
+  idsToLookUp.add(instance.startedBy); //发起人id
+  for (const h of instance.histories) {
+    if (h.operator && !h.operatorName) {
+      idsToLookUp.add(h.operator); //操作人id
+    }
+  }
+  const users = await prisma.user.findMany({
+    where: { id: { in: Array.from(idsToLookUp) } },
+    select: { id: true, fullName: true, username: true },
+  });
+  const userMap = new Map(users.map((u) => [u.id, u]));
+  for (const h of instance.histories) {
+    if (h.operator && !h.operatorName) {
+      h.operatorName =
+        userMap.get(h.operator)?.fullName ||
+        userMap.get(h.operator)?.username ||
+        h.operator;
+    }
+  }
+
+  let startedByName =
+    userMap.get(instance.startedBy)?.fullName ||
+    userMap.get(instance.startedBy)?.username ||
+    instance.startedBy;
+
+  return { ...instance, startedByName: startedByName } as any;
 };
 
 export const cancelInstance = async (id: string): Promise<void> => {
@@ -95,17 +121,17 @@ export const cancelInstance = async (id: string): Promise<void> => {
   });
 
   if (!instance) {
-    throw new Error('流程实例不存在');
+    throw new Error("流程实例不存在");
   }
 
-  if (instance.status !== 'running') {
-    throw new Error('流程实例未运行中');
+  if (instance.status !== "running") {
+    throw new Error("流程实例未运行中");
   }
 
   await prisma.processInstance.update({
     where: { id },
     data: {
-      status: 'cancelled',
+      status: "cancelled",
       endedAt: new Date(),
     },
   });
@@ -113,10 +139,10 @@ export const cancelInstance = async (id: string): Promise<void> => {
   await prisma.task.updateMany({
     where: {
       instanceId: id,
-      status: 'pending',
+      status: "pending",
     },
     data: {
-      status: 'cancelled',
+      status: "cancelled",
       completedAt: new Date(),
     },
   });
@@ -125,17 +151,18 @@ export const cancelInstance = async (id: string): Promise<void> => {
 const executeProcess = async (
   instanceId: string,
   definition: any,
-  startedBy: string
+  startedBy: string,
 ): Promise<void> => {
-  const definitionData = typeof definition.definition === 'string' 
-    ? JSON.parse(definition.definition) 
-    : definition.definition;
+  const definitionData =
+    typeof definition.definition === "string"
+      ? JSON.parse(definition.definition)
+      : definition.definition;
   const nodes = definitionData.nodes || [];
   const edges = definitionData.edges || [];
 
-  const startNode = nodes.find((node: any) => node.type === 'start');
+  const startNode = nodes.find((node: any) => node.type === "start");
   if (!startNode) {
-    throw new Error('流程定义缺少开始节点');
+    throw new Error("流程定义缺少开始节点");
   }
 
   let currentNodeIds: string[] = [startNode.id];
@@ -165,7 +192,7 @@ const executeProcess = async (
       },
     });
 
-    if (node.type === 'userTask') {
+    if (node.type === "userTask") {
       const candidateUsers = node.data?.candidateUsers || [];
       const candidateGroups = node.data?.candidateGroups || [];
       const assignee = node.data?.assignee || startedBy;
@@ -176,7 +203,7 @@ const executeProcess = async (
           definitionId: definition.id,
           nodeId: node.id,
           nodeName: node.label || node.id,
-          status: 'pending',
+          status: "pending",
           assignee,
           candidateUsers: JSON.stringify(candidateUsers),
           candidateGroups: JSON.stringify(candidateGroups),
@@ -186,7 +213,10 @@ const executeProcess = async (
       await prisma.processInstance.update({
         where: { id: instanceId },
         data: {
-          currentNodeIds: JSON.stringify([...currentNodeIds, ...executedNodes.filter((id) => !currentNodeIds.includes(id))]),
+          currentNodeIds: JSON.stringify([
+            ...currentNodeIds,
+            ...executedNodes.filter((id) => !currentNodeIds.includes(id)),
+          ]),
         },
       });
 
@@ -202,7 +232,7 @@ const executeProcess = async (
   await prisma.processInstance.update({
     where: { id: instanceId },
     data: {
-      status: 'completed',
+      status: "completed",
       endedAt: new Date(),
       currentNodeIds: JSON.stringify([]),
     },

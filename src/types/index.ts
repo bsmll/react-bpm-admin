@@ -111,6 +111,7 @@ export interface ProcessInstance {
   startedAt: number;
   endedAt?: number;
   startedBy: string;
+  startedByName?: string;
 }
 
 export interface InstanceHistory {
@@ -120,6 +121,7 @@ export interface InstanceHistory {
   type: "enter" | "leave" | "complete";
   timestamp: number;
   operator?: string;
+  operatorName?: string;
   comment?: string;
 }
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Card,
@@ -10,7 +10,6 @@ import {
   Empty,
   Button,
   Space,
-  Divider,
   Typography,
   message,
 } from "antd";
@@ -24,8 +23,10 @@ const { Title, Text } = Typography;
 const InstanceDetailView: React.FC = () => {
   const { id } = useParams<{ id: string }>(); // 获取 URL 中的 :id
   const navigate = useNavigate();
-  const instanceStore = useInstanceStore();
-  const processStore = useProcessStore();
+  const getInstance = useInstanceStore((state) => state.getInstance);
+
+  const fetchDefinitions = useProcessStore((state) => state.fetchDefinitions);
+  const definitions = useProcessStore((state) => state.definitions);
 
   const [instance, setInstance] = useState<ProcessInstance | null>(null);
   const [loading, setLoading] = useState(false);
@@ -37,11 +38,11 @@ const InstanceDetailView: React.FC = () => {
       setLoading(true);
       try {
         // 同时获取实例详情和流程定义（为了拿流程名称）
-        await Promise.all([
-          instanceStore.getInstance(id),
-          processStore.fetchDefinitions(),
+        const [instanceData] = await Promise.all([
+          getInstance(id),
+          fetchDefinitions(),
         ]);
-        setInstance(instanceStore.currentInstance);
+        setInstance(instanceData);
       } catch (error: any) {
         message.error(error.message || "加载详情失败");
       } finally {
@@ -54,9 +55,7 @@ const InstanceDetailView: React.FC = () => {
   // 2. 辅助工具函数
   const getDefinitionName = (definitionId?: string) => {
     if (!definitionId) return "-";
-    const definition = processStore.definitions.find(
-      (d) => d.id === definitionId,
-    );
+    const definition = definitions.find((d) => d.id === definitionId);
     return definition?.name || definitionId;
   };
 
@@ -139,7 +138,7 @@ const InstanceDetailView: React.FC = () => {
                 </Tag>
               </Descriptions.Item>
               <Descriptions.Item label="发起人">
-                {instance?.startedBy || "-"}
+                {instance?.startedByName || instance?.startedBy || "-"}
               </Descriptions.Item>
               <Descriptions.Item label="创建时间">
                 {formatDate(instance?.createdAt)}
@@ -197,7 +196,7 @@ const InstanceDetailView: React.FC = () => {
                     </div>
                     {h.operator && (
                       <div style={{ fontSize: 12, color: "#888" }}>
-                        操作人：{h.operator}
+                        操作人：{h.operatorName || h.operator}
                       </div>
                     )}
                     {h.comment && (

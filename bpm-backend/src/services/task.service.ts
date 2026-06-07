@@ -1,10 +1,11 @@
-import prisma from '../config/database.config';
-import { Task, PaginationParams, PaginationResult } from '../types';
-import * as processService from './process.service';
-import { getWebSocketService } from './websocket.service';
+import prisma from "../config/database.config";
+import { Task, PaginationParams, PaginationResult } from "../types";
+import * as processService from "./process.service";
+import { getWebSocketService } from "./websocket.service";
+import { getUserNameById } from "../utils/user.util";
 
 export const getTasks = async (
-  params: PaginationParams & { assignee?: string }
+  params: PaginationParams & { assignee?: string },
 ): Promise<PaginationResult<Task>> => {
   const { page = 1, pageSize = 10, status, assignee } = params;
   const skip = (page - 1) * pageSize;
@@ -22,7 +23,7 @@ export const getTasks = async (
       where,
       skip,
       take: pageSize,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         instance: {
           include: {
@@ -37,15 +38,13 @@ export const getTasks = async (
   return { list, total, page, pageSize };
 };
 
-export const getMyPendingTasks = async (
-  userId: string
-): Promise<Task[]> => {
+export const getMyPendingTasks = async (userId: string): Promise<Task[]> => {
   return await prisma.task.findMany({
     where: {
       assignee: userId,
-      status: 'pending',
+      status: "pending",
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     include: {
       instance: {
         include: {
@@ -60,7 +59,7 @@ export const completeTask = async (
   taskId: string,
   userId: string,
   variables?: any,
-  comment?: string
+  comment?: string,
 ): Promise<Task> => {
   const task = await prisma.task.findUnique({
     where: { id: taskId },
@@ -70,21 +69,21 @@ export const completeTask = async (
   });
 
   if (!task) {
-    throw new Error('任务不存在');
+    throw new Error("任务不存在");
   }
 
   if (task.assignee !== userId) {
-    throw new Error('无权操作此任务');
+    throw new Error("无权操作此任务");
   }
 
-  if (task.status !== 'pending') {
-    throw new Error('任务已完成或已取消');
+  if (task.status !== "pending") {
+    throw new Error("任务已完成或已取消");
   }
 
   const updatedTask = await prisma.task.update({
     where: { id: taskId },
     data: {
-      status: 'approved',
+      status: "approved",
       completedAt: new Date(),
     },
   });
@@ -94,9 +93,10 @@ export const completeTask = async (
       instanceId: task.instanceId,
       nodeId: task.nodeId,
       nodeName: task.nodeName,
-      type: 'task_complete',
+      type: "task_complete",
       timestamp: new Date(),
       operator: userId,
+      operatorName: await getUserNameById(userId),
       comment,
     },
   });
@@ -106,9 +106,15 @@ export const completeTask = async (
   // 发送任务审批结果通知
   try {
     const wsService = getWebSocketService();
-    wsService.sendTaskResult(task.assignee!, taskId, task.instanceId, 'approved', comment);
+    wsService.sendTaskResult(
+      task.assignee!,
+      taskId,
+      task.instanceId,
+      "approved",
+      comment,
+    );
   } catch (error) {
-    console.error('WebSocket send error:', error);
+    console.error("WebSocket send error:", error);
   }
 
   return updatedTask;
@@ -117,28 +123,28 @@ export const completeTask = async (
 export const rejectTask = async (
   taskId: string,
   userId: string,
-  comment?: string
+  comment?: string,
 ): Promise<Task> => {
   const task = await prisma.task.findUnique({
     where: { id: taskId },
   });
 
   if (!task) {
-    throw new Error('任务不存在');
+    throw new Error("任务不存在");
   }
 
   if (task.assignee !== userId) {
-    throw new Error('无权操作此任务');
+    throw new Error("无权操作此任务");
   }
 
-  if (task.status !== 'pending') {
-    throw new Error('任务已完成或已取消');
+  if (task.status !== "pending") {
+    throw new Error("任务已完成或已取消");
   }
 
   const updatedTask = await prisma.task.update({
     where: { id: taskId },
     data: {
-      status: 'rejected',
+      status: "rejected",
       completedAt: new Date(),
     },
   });
@@ -148,9 +154,10 @@ export const rejectTask = async (
       instanceId: task.instanceId,
       nodeId: task.nodeId,
       nodeName: task.nodeName,
-      type: 'task_reject',
+      type: "task_reject",
       timestamp: new Date(),
       operator: userId,
+      operatorName: await getUserNameById(userId),
       comment,
     },
   });
@@ -158,7 +165,7 @@ export const rejectTask = async (
   await prisma.processInstance.update({
     where: { id: task.instanceId },
     data: {
-      status: 'cancelled',
+      status: "cancelled",
       endedAt: new Date(),
     },
   });
@@ -166,9 +173,15 @@ export const rejectTask = async (
   // 发送任务拒绝结果通知
   try {
     const wsService = getWebSocketService();
-    wsService.sendTaskResult(task.assignee!, taskId, task.instanceId, 'rejected', comment);
+    wsService.sendTaskResult(
+      task.assignee!,
+      taskId,
+      task.instanceId,
+      "rejected",
+      comment,
+    );
   } catch (error) {
-    console.error('WebSocket send error:', error);
+    console.error("WebSocket send error:", error);
   }
 
   return updatedTask;
@@ -178,29 +191,29 @@ export const delegateTask = async (
   taskId: string,
   userId: string,
   toUserId: string,
-  comment?: string
+  comment?: string,
 ): Promise<Task> => {
   const task = await prisma.task.findUnique({
     where: { id: taskId },
   });
 
   if (!task) {
-    throw new Error('任务不存在');
+    throw new Error("任务不存在");
   }
 
   if (task.assignee !== userId) {
-    throw new Error('无权操作此任务');
+    throw new Error("无权操作此任务");
   }
 
-  if (task.status !== 'pending') {
-    throw new Error('任务已完成或已取消');
+  if (task.status !== "pending") {
+    throw new Error("任务已完成或已取消");
   }
 
   const updatedTask = await prisma.task.update({
     where: { id: taskId },
     data: {
       assignee: toUserId,
-      status: 'delegated',
+      status: "delegated",
     },
   });
 
@@ -209,9 +222,10 @@ export const delegateTask = async (
       instanceId: task.instanceId,
       nodeId: task.nodeId,
       nodeName: task.nodeName,
-      type: 'task_delegate',
+      type: "task_delegate",
       timestamp: new Date(),
       operator: userId,
+      operatorName: await getUserNameById(userId),
       comment,
     },
   });
@@ -227,19 +241,21 @@ const continueProcess = async (instanceId: string): Promise<void> => {
     },
   });
 
-  if (!instance || instance.status !== 'running') {
+  if (!instance || instance.status !== "running") {
     return;
   }
 
-  const definitionData = typeof instance.definition.definition === 'string' 
-    ? JSON.parse(instance.definition.definition) 
-    : instance.definition.definition as any;
+  const definitionData =
+    typeof instance.definition.definition === "string"
+      ? JSON.parse(instance.definition.definition)
+      : (instance.definition.definition as any);
   const nodes = definitionData?.nodes || [];
   const edges = definitionData?.edges || [];
 
-  const currentNodeIds = typeof instance.currentNodeIds === 'string' 
-    ? JSON.parse(instance.currentNodeIds) 
-    : instance.currentNodeIds;
+  const currentNodeIds =
+    typeof instance.currentNodeIds === "string"
+      ? JSON.parse(instance.currentNodeIds)
+      : instance.currentNodeIds;
   const executedNodes = [...currentNodeIds];
 
   const nextNodeIds: string[] = [];
@@ -258,7 +274,7 @@ const continueProcess = async (instanceId: string): Promise<void> => {
     await prisma.processInstance.update({
       where: { id: instanceId },
       data: {
-        status: 'completed',
+        status: "completed",
         endedAt: new Date(),
         currentNodeIds: JSON.stringify([]),
       },
@@ -283,7 +299,7 @@ const continueProcess = async (instanceId: string): Promise<void> => {
       },
     });
 
-    if (node.type === 'userTask') {
+    if (node.type === "userTask") {
       const candidateUsers = node.data?.candidateUsers || [];
       const candidateGroups = node.data?.candidateGroups || [];
       const assignee = node.data?.assignee || instance.startedBy;
@@ -294,7 +310,7 @@ const continueProcess = async (instanceId: string): Promise<void> => {
           definitionId: instance.definitionId,
           nodeId: node.id,
           nodeName: node.label || node.id,
-          status: 'pending',
+          status: "pending",
           assignee,
           candidateUsers: JSON.stringify(candidateUsers),
           candidateGroups: JSON.stringify(candidateGroups),
@@ -305,15 +321,20 @@ const continueProcess = async (instanceId: string): Promise<void> => {
       // 发送任务分配通知
       try {
         const wsService = getWebSocketService();
-        wsService.sendTaskAssigned(assignee, node.id, node.label || node.id, instanceId);
+        wsService.sendTaskAssigned(
+          assignee,
+          node.id,
+          node.label || node.id,
+          instanceId,
+        );
       } catch (error) {
-        console.error('WebSocket send error:', error);
+        console.error("WebSocket send error:", error);
       }
-    } else if (node.type === 'end') {
+    } else if (node.type === "end") {
       await prisma.processInstance.update({
         where: { id: instanceId },
         data: {
-          status: 'completed',
+          status: "completed",
           endedAt: new Date(),
           currentNodeIds: JSON.stringify([]),
         },

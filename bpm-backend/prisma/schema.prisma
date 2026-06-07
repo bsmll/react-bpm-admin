@@ -72,6 +72,7 @@ model ProcessHistory {
   type      String
   timestamp DateTime @default(now())
   operator  String?
+  operatorName String?
   comment   String?
 
   instance  ProcessInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
