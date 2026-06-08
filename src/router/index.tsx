@@ -8,12 +8,13 @@ import {
 } from "react-router-dom";
 import { useAuthStore } from "../stores/auth";
 import MainLayout from "../components/layout/MainLayout";
+import { loadDesignerView } from "./lazyRoutes";
 
 // 1. 页面懒加载
 const LoginView = lazy(() => import("../views/LoginView"));
 const RegisterView = lazy(() => import("../views/RegisterView"));
 const DashboardView = lazy(() => import("../views/DashboardView"));
-const DesignerView = lazy(() => import("../views/DesignerView"));
+const DesignerView = lazy(loadDesignerView);
 const ApplyView = lazy(() => import("../views/ApplyView"));
 const MyApplicationsView = lazy(() => import("../views/MyApplicationsView"));
 const InstancesView = lazy(() => import("../views/InstancesView"));

@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { Layout, Menu, Space, Dropdown, Avatar, Button } from "antd";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import {
@@ -18,6 +18,8 @@ import {
 import { useAuthStore } from "../../stores/auth";
 import ThemeSwitcher from "../ThemeSwitcher";
 import NotificationCenter from "../NotificationCenter";
+import { prefetchDesignerFull } from "../../router/lazyRoutes";
+import { runWhenIdle } from "../../utils/idlePrefetch";
 
 const { Header, Sider, Content } = Layout;
 
@@ -29,6 +31,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const authStore = useAuthStore();
+
+  useEffect(() => {
+    if (location.pathname === "/designer") return;
+
+    const cancel = runWhenIdle(
+      () => {
+        prefetchDesignerFull("idle");
+      },
+      { timeout: 5000, delay: 2000 },
+    );
+    return cancel;
+  }, [location.pathname]);
 
   // 1. 对应 Vue 的 pageTitle computed
   const pageTitle = useMemo(() => {
@@ -54,7 +68,15 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   // 3. 菜单项配置 (Ant Design React 5.0+ 推荐写法)
   const menuItems = [
     { key: "/dashboard", icon: <DashboardOutlined />, label: "数据看板" },
-    { key: "/designer", icon: <EditOutlined />, label: "流程设计器" },
+    {
+      key: "/designer",
+      icon: <EditOutlined />,
+      label: (
+        <span onMouseEnter={() => prefetchDesignerFull("hover")}>
+          流程设计器
+        </span>
+      ),
+    },
     { key: "/apply", icon: <SendOutlined />, label: "发起申请" },
     { key: "/my-applications", icon: <FileTextOutlined />, label: "我的申请" },
     { key: "/instances", icon: <AppstoreOutlined />, label: "流程实例" },
@@ -104,7 +126,17 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           mode="inline"
           selectedKeys={[location.pathname]}
           items={menuItems}
-          onClick={({ key }) => navigate(key)}
+          onClick={({ key }) => {
+            const startTime = performance.now();
+            navigate(key, {
+              state: {
+                perfNav: {
+                  startTime,
+                  route: key,
+                },
+              },
+            });
+          }}
         />
       </Sider>
 

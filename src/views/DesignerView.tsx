@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
 import {
   Spin,
   Row,
@@ -14,13 +14,16 @@ import {
   message,
   Popconfirm,
 } from "antd";
-import ProcessDesigner, {
-  type ProcessDesignerHandle,
-} from "../components/designer/ProcessDesigner";
+
+import type { ProcessDesignerHandle } from "../components/designer/ProcessDesigner";
+import { loadProcessDesigner } from "../router/lazyRoutes";
+const ProcessDesigner = lazy(loadProcessDesigner);
+
 import AiFormBuilderModal from "../components/designer/AiFormBuilderModal";
 import { useProcessStore } from "../stores/process";
 import { DeleteOutlined } from "@ant-design/icons";
 import "./DesignerView.css";
+import { useLocation } from "react-router-dom";
 
 const { TextArea } = Input;
 
@@ -30,6 +33,28 @@ const DesignerView: React.FC = () => {
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [aiFormModalOpen, setAiFormModalOpen] = useState(false);
   const [form] = Form.useForm();
+
+  //加载计时
+  const location = useLocation();
+  useEffect(() => {
+    const prefNav = (
+      location.state as {
+        perfNav?: { startTime: number; route: string };
+      } | null
+    )?.perfNav;
+    if (!prefNav || prefNav.route !== "/designer") return;
+    const duration = performance.now() - prefNav.startTime;
+    console.log(
+      `%c[性能] DesignerView 挂载完成 | 导航→挂载: ${duration.toFixed(2)} ms`,
+      "color:#ff00ff;font-weight:bold;font-size:14px;background:#222;padding:4px 8px;border-radius:4px;",
+    );
+    if (!sessionStorage.getItem("perfNav")) {
+      sessionStorage.setItem(
+        "perfNav",
+        JSON.stringify({ duration, at: Date.now(), label: "baseline" }),
+      );
+    }
+  }, [location.state]);
 
   useEffect(() => {
     // 只有在没数据时才请求，防止重复触发
@@ -194,10 +219,25 @@ const DesignerView: React.FC = () => {
                   </Space>
                 }
               >
-                <ProcessDesigner
-                  ref={designerRef}
-                  key={processStore.currentDefinition.id}
-                />
+                <Suspense
+                  fallback={
+                    <div
+                      style={{
+                        height: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Spin description="画布加载中..." />
+                    </div>
+                  }
+                >
+                  <ProcessDesigner
+                    ref={designerRef}
+                    key={processStore.currentDefinition.id}
+                  />
+                </Suspense>
               </Card>
             ) : (
               <Card
