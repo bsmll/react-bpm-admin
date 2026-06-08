@@ -17,24 +17,11 @@ export const loadDesignerView = () => import("../views/DesignerView");
 
 let designerPrefetchPromise: Promise<unknown> | null = null;
 
-export const prefetchDesignerView = (source: "idle" | "hover") => {
+export const prefetchDesignerView = () => {
   if (!shouldPrefetch()) return;
 
   if (!designerPrefetchPromise) {
-    const t0 = performance.now();
-    console.log(
-      `%c[perf] prefetch DesignerView (${source})`,
-      "color:#fa0;font-weight:bold;",
-    );
-
-    designerPrefetchPromise = loadDesignerView().then((mod) => {
-      const ms = performance.now() - t0;
-      console.log(
-        `%c[perf] DesignerView 预取完成 (${source}): ${ms.toFixed(2)} ms`,
-        "color:#0f0;font-weight:bold;",
-      );
-      return mod;
-    });
+    designerPrefetchPromise = loadDesignerView();
   }
   return designerPrefetchPromise;
 };
@@ -44,26 +31,14 @@ export const loadProcessDesigner = () =>
 
 let processDesignerPrefetchPromise: Promise<unknown> | null = null;
 
-export const prefetchProcessDesigner = (source: "idle" | "hover") => {
+export const prefetchProcessDesigner = () => {
   if (!shouldPrefetch()) return;
 
   if (!processDesignerPrefetchPromise) {
-    const t0 = performance.now();
-    processDesignerPrefetchPromise = loadProcessDesigner().then((mod) => {
-      const ms = performance.now() - t0;
-      console.log(
-        `%c[perf] ProcessDesigner 预取完成 (${source}): ${ms.toFixed(2)} ms`,
-        "color:#0f0;font-weight:bold;",
-      );
-      return mod;
-    });
+    processDesignerPrefetchPromise = loadProcessDesigner();
   }
   return processDesignerPrefetchPromise;
 };
 
-export const prefetchDesignerFull = (source: "idle" | "hover") => {
-  return Promise.all([
-    prefetchDesignerView(source),
-    prefetchProcessDesigner(source),
-  ]);
-};
+export const prefetchDesignerFull = () =>
+  Promise.all([prefetchDesignerView(), prefetchProcessDesigner()]);

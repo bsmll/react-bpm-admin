@@ -16,15 +16,13 @@ import {
 } from "antd";
 
 import type { ProcessDesignerHandle } from "../components/designer/ProcessDesigner";
-import { loadProcessDesigner } from "../router/lazyRoutes";
-const ProcessDesigner = lazy(loadProcessDesigner);
-
 import AiFormBuilderModal from "../components/designer/AiFormBuilderModal";
+import { loadProcessDesigner } from "../router/lazyRoutes";
 import { useProcessStore } from "../stores/process";
 import { DeleteOutlined } from "@ant-design/icons";
 import "./DesignerView.css";
-import { useLocation } from "react-router-dom";
 
+const ProcessDesigner = lazy(loadProcessDesigner);
 const { TextArea } = Input;
 
 const DesignerView: React.FC = () => {
@@ -33,28 +31,6 @@ const DesignerView: React.FC = () => {
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [aiFormModalOpen, setAiFormModalOpen] = useState(false);
   const [form] = Form.useForm();
-
-  //加载计时
-  const location = useLocation();
-  useEffect(() => {
-    const prefNav = (
-      location.state as {
-        perfNav?: { startTime: number; route: string };
-      } | null
-    )?.perfNav;
-    if (!prefNav || prefNav.route !== "/designer") return;
-    const duration = performance.now() - prefNav.startTime;
-    console.log(
-      `%c[性能] DesignerView 挂载完成 | 导航→挂载: ${duration.toFixed(2)} ms`,
-      "color:#ff00ff;font-weight:bold;font-size:14px;background:#222;padding:4px 8px;border-radius:4px;",
-    );
-    if (!sessionStorage.getItem("perfNav")) {
-      sessionStorage.setItem(
-        "perfNav",
-        JSON.stringify({ duration, at: Date.now(), label: "baseline" }),
-      );
-    }
-  }, [location.state]);
 
   useEffect(() => {
     // 只有在没数据时才请求，防止重复触发

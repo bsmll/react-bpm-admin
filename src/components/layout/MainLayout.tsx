@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from "react";
 import { Layout, Menu, Space, Dropdown, Avatar, Button } from "antd";
-import { useLocation, useNavigate, Link } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   DownOutlined,
   UserOutlined,
@@ -37,7 +37,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
     const cancel = runWhenIdle(
       () => {
-        prefetchDesignerFull("idle");
+        prefetchDesignerFull();
       },
       { timeout: 5000, delay: 2000 },
     );
@@ -72,7 +72,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       key: "/designer",
       icon: <EditOutlined />,
       label: (
-        <span onMouseEnter={() => prefetchDesignerFull("hover")}>
+        <span onMouseEnter={() => prefetchDesignerFull()}>
           流程设计器
         </span>
       ),
@@ -126,17 +126,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           mode="inline"
           selectedKeys={[location.pathname]}
           items={menuItems}
-          onClick={({ key }) => {
-            const startTime = performance.now();
-            navigate(key, {
-              state: {
-                perfNav: {
-                  startTime,
-                  route: key,
-                },
-              },
-            });
-          }}
+          onClick={({ key }) => navigate(key)}
         />
       </Sider>
 
